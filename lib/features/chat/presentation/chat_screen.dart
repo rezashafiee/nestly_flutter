@@ -342,8 +342,8 @@ class ChatDetail extends StatelessWidget {
                       ),
                     ),
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
                     itemCount: conversation.messages.length,
                     itemBuilder: (context, index) {
                       final message = conversation.messages[index];
@@ -354,6 +354,7 @@ class ChatDetail extends StatelessWidget {
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 440),
                           child: DecoratedBox(
+                            key: ValueKey('chatMessageBubble_$index'),
                             decoration: BoxDecoration(
                               color: message.fromCurrentUser
                                   ? AppColors.brandBlueDeep
@@ -379,6 +380,13 @@ class ChatDetail extends StatelessWidget {
                           ),
                         ),
                       );
+                    },
+                    separatorBuilder: (context, index) {
+                      final current = conversation.messages[index];
+                      final next = conversation.messages[index + 1];
+                      final sameSender =
+                          current.fromCurrentUser == next.fromCurrentUser;
+                      return SizedBox(height: sameSender ? 8 : 12);
                     },
                   ),
           ),
