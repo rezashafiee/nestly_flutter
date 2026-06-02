@@ -44,20 +44,43 @@ class SellController extends ChangeNotifier {
   }
 
   Future<void> takePhoto() async {
+    await _pickPhoto(
+      _photoRepository.captureForCategory,
+      fallbackError: 'Camera is unavailable right now.',
+    );
+  }
+
+  Future<void> choosePhoto() async {
+    await _pickPhoto(
+      _photoRepository.chooseForCategory,
+      fallbackError: 'Photo gallery is unavailable right now.',
+    );
+  }
+
+  Future<void> _pickPhoto(
+    Future<PhotoAsset?> Function(String category) pickPhoto, {
+    required String fallbackError,
+  }) async {
     _photoStatus = AsyncStatus.loading;
     _photoError = null;
     notifyListeners();
     try {
-      _photo = await _photoRepository.captureForCategory(_category);
+      final pickedPhoto = await pickPhoto(_category);
+      if (pickedPhoto == null) {
+        _photoStatus = _photo == null ? AsyncStatus.idle : AsyncStatus.success;
+        return;
+      }
+      _photo = pickedPhoto;
       _photoStatus = AsyncStatus.success;
     } on PhotoException catch (error) {
       _photoStatus = AsyncStatus.failure;
       _photoError = error.message;
     } catch (_) {
       _photoStatus = AsyncStatus.failure;
-      _photoError = 'Photo service is unavailable right now.';
+      _photoError = fallbackError;
+    } finally {
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   bool goToDetails() {

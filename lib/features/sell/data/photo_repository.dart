@@ -1,25 +1,71 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../../core/data/photo_assets.dart';
 import '../../../core/models/photo_asset.dart';
-import '../../../core/network/api_client.dart';
 
 class PhotoRepository {
-  PhotoRepository({NestlyApiClient? apiClient})
-    : _apiClient = apiClient ?? NestlyApiClient();
+  PhotoRepository({ImagePicker? imagePicker})
+    : _imagePicker = imagePicker ?? ImagePicker();
 
-  final NestlyApiClient _apiClient;
+  final ImagePicker _imagePicker;
 
-  Future<PhotoAsset> captureForCategory(String category) async {
+  Future<PhotoAsset?> captureForCategory(String category) {
+    return _pickPhoto(category: category, source: ImageSource.camera);
+  }
+
+  Future<PhotoAsset?> chooseForCategory(String category) {
+    return _pickPhoto(category: category, source: ImageSource.gallery);
+  }
+
+  Future<PhotoAsset?> _pickPhoto({
+    required String category,
+    required ImageSource source,
+  }) async {
     try {
-      final response = await _apiClient.getJson(
-        '/api/photos/default',
-        queryParameters: {'category': category},
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1800,
+        maxHeight: 1800,
+        imageQuality: 85,
       );
-      return PhotoAsset.fromJson(asJsonMap(response));
-    } on ApiException catch (error) {
-      throw PhotoException(error.message);
+      if (pickedFile == null) {
+        return null;
+      }
+      final bytes = await pickedFile.readAsBytes();
+      if (bytes.isEmpty) {
+        throw const PhotoException('Selected photo could not be read.');
+      }
+
+      final fallback = PhotoAssets.forCategory(category);
+      return PhotoAsset(
+        iconKey: source == ImageSource.camera ? 'camera' : 'gallery',
+        colorValue: fallback.colorValue,
+        imageData: base64Encode(bytes),
+      );
+    } on PlatformException catch (error) {
+      throw PhotoException(_platformMessage(source, error));
+    } on PhotoException {
+      rethrow;
     } catch (_) {
-      return PhotoAssets.forCategory(category);
+      throw PhotoException(_unavailableMessage(source));
     }
+  }
+
+  String _platformMessage(ImageSource source, PlatformException error) {
+    final message = error.message;
+    if (message != null && message.trim().isNotEmpty) {
+      return message;
+    }
+    return _unavailableMessage(source);
+  }
+
+  String _unavailableMessage(ImageSource source) {
+    return source == ImageSource.camera
+        ? 'Camera is unavailable right now.'
+        : 'Photo gallery is unavailable right now.';
   }
 }
 

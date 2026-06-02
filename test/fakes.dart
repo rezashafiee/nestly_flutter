@@ -193,7 +193,12 @@ class FakeChatRepository extends ChatRepository {
 
 class FakePhotoRepository extends PhotoRepository {
   @override
-  Future<PhotoAsset> captureForCategory(String category) async {
+  Future<PhotoAsset?> captureForCategory(String category) async {
+    return PhotoAssets.forCategory(category);
+  }
+
+  @override
+  Future<PhotoAsset?> chooseForCategory(String category) async {
     return PhotoAssets.forCategory(category);
   }
 }

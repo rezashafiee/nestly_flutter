@@ -43,3 +43,17 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# CI/CD signing and store delivery secrets
+/android/key.properties
+*.jks
+*.keystore
+*.mobileprovision
+*.p8
+/fastlane/.env
+/fastlane/.env.*
+!/fastlane/.env.example
+/fastlane/report.xml
+/fastlane/Preview.html
+/fastlane/screenshots/
+/fastlane/test_output/

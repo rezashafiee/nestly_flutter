@@ -74,8 +74,7 @@ class _NestlyAppState extends State<NestlyApp> {
     _chatRepository =
         widget.chatRepository ??
         ChatRepository(apiClient: _apiClient, offlineStore: _offlineStore);
-    _photoRepository =
-        widget.photoRepository ?? PhotoRepository(apiClient: _apiClient);
+    _photoRepository = widget.photoRepository ?? PhotoRepository();
     _authController = AuthController(_authRepository);
     unawaited(_authController.restoreSession());
     _marketplaceController = MarketplaceController(_listingsRepository);

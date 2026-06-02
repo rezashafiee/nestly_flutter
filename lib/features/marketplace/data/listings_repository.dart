@@ -90,7 +90,10 @@ class ListingsRepository {
         'sellerEmail': seller.email,
         'photo': input.photo.toJson(),
       });
-      final listing = Listing.fromJson(asJsonMap(response));
+      final listing = _preservePickedPhoto(
+        Listing.fromJson(asJsonMap(response)),
+        input.photo,
+      );
       _replaceListing(listing);
       await _writeCachedListings(_listings);
       _isUsingOfflineData = false;
@@ -185,7 +188,10 @@ class ListingsRepository {
       try {
         final request = asJsonMap(item['request']);
         final response = await _apiClient.postJson('/api/listings', request);
-        final listing = Listing.fromJson(asJsonMap(response));
+        final listing = _preservePickedPhoto(
+          Listing.fromJson(asJsonMap(response)),
+          PhotoAsset.fromJson(asJsonMap(request['photo'])),
+        );
         _replaceListing(listing, previousId: item['localId']?.toString());
       } catch (_) {
         remaining.add(item);
@@ -284,6 +290,30 @@ class ListingsRepository {
       'sellerEmail': seller.email,
       'photo': input.photo.toJson(),
     };
+  }
+
+  Listing _preservePickedPhoto(Listing listing, PhotoAsset pickedPhoto) {
+    final hasPickedPhoto =
+        pickedPhoto.imageData != null && pickedPhoto.imageData!.isNotEmpty;
+    final responseHasPhoto =
+        listing.photo.imageData != null && listing.photo.imageData!.isNotEmpty;
+    if (!hasPickedPhoto || responseHasPhoto) {
+      return listing;
+    }
+    return Listing(
+      id: listing.id,
+      title: listing.title,
+      category: listing.category,
+      price: listing.price,
+      condition: listing.condition,
+      location: listing.location,
+      description: listing.description,
+      sellerName: listing.sellerName,
+      createdAt: listing.createdAt,
+      photo: pickedPhoto,
+      likes: listing.likes,
+      isMine: listing.isMine,
+    );
   }
 }
 

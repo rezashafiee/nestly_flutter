@@ -122,7 +122,11 @@ class _SellScreenState extends State<SellScreen> {
               StepProgress(currentStep: sell.step),
               const SizedBox(height: 22),
               if (sell.step == 0)
-                PhotoStep(sell: sell, onTakePhoto: sell.takePhoto),
+                PhotoStep(
+                  sell: sell,
+                  onTakePhoto: sell.takePhoto,
+                  onChoosePhoto: sell.choosePhoto,
+                ),
               if (sell.step == 1 || sell.step == 2)
                 Form(
                   key: _formKey,
@@ -199,10 +203,16 @@ class _SellScreenState extends State<SellScreen> {
 }
 
 class PhotoStep extends StatelessWidget {
-  const PhotoStep({super.key, required this.sell, required this.onTakePhoto});
+  const PhotoStep({
+    super.key,
+    required this.sell,
+    required this.onTakePhoto,
+    required this.onChoosePhoto,
+  });
 
   final SellController sell;
   final VoidCallback onTakePhoto;
+  final VoidCallback onChoosePhoto;
 
   @override
   Widget build(BuildContext context) {
@@ -250,7 +260,7 @@ class PhotoStep extends StatelessWidget {
                   label: const Text('Take photo'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: sell.isTakingPhoto ? null : onTakePhoto,
+                  onPressed: sell.isTakingPhoto ? null : onChoosePhoto,
                   icon: const Icon(Icons.photo_library_outlined),
                   label: const Text('Choose photo'),
                 ),

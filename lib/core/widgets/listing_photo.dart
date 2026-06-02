@@ -34,12 +34,17 @@ class PhotoAssetView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    final imageBytes = photo.imageBytes;
+    return Container(
       decoration: BoxDecoration(
         color: Color(photo.colorValue).withValues(alpha: 0.42),
         borderRadius: BorderRadius.circular(18),
+      ),
+      foregroundDecoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.line),
       ),
+      clipBehavior: Clip.antiAlias,
       child: SizedBox(
         height: height,
         width: double.infinity,
@@ -57,14 +62,29 @@ class PhotoAssetView extends StatelessWidget {
             return Stack(
               fit: StackFit.expand,
               children: [
-                Align(
-                  alignment: Alignment.center,
-                  child: Icon(
-                    iconForPhoto(photo.iconKey),
-                    color: AppColors.brandBlueDeep,
-                    size: iconSize,
+                if (imageBytes == null)
+                  Align(
+                    alignment: Alignment.center,
+                    child: Icon(
+                      iconForPhoto(photo.iconKey),
+                      color: AppColors.brandBlueDeep,
+                      size: iconSize,
+                    ),
+                  )
+                else
+                  Image.memory(
+                    imageBytes,
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                    errorBuilder: (context, error, stackTrace) => Align(
+                      alignment: Alignment.center,
+                      child: Icon(
+                        iconForPhoto(photo.iconKey),
+                        color: AppColors.brandBlueDeep,
+                        size: iconSize,
+                      ),
+                    ),
                   ),
-                ),
                 if (showCategory)
                   Positioned(
                     left: 12,
@@ -113,6 +133,7 @@ double? _shortestFiniteSide(BoxConstraints constraints) {
 IconData iconForPhoto(String key) {
   return switch (key) {
     'camera' => Icons.add_a_photo_outlined,
+    'gallery' => Icons.photo_library_outlined,
     'desk' => Icons.desk,
     'bike' => Icons.directions_bike,
     'lamp' => Icons.light,
