@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../core/models/user_profile.dart';
@@ -18,6 +20,17 @@ class AuthController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _profile != null;
   bool get isBusy => _status == AsyncStatus.loading;
+
+  Future<void> restoreSession() async {
+    final profile = await _repository.restoreProfile();
+    if (profile == null) {
+      return;
+    }
+    _profile = profile;
+    _status = AsyncStatus.success;
+    _errorMessage = null;
+    notifyListeners();
+  }
 
   Future<void> signInWithEmail({
     required String email,
@@ -58,6 +71,7 @@ class AuthController extends ChangeNotifier {
     _profile = null;
     _status = AsyncStatus.idle;
     _errorMessage = null;
+    unawaited(_repository.forgetProfile());
     notifyListeners();
   }
 

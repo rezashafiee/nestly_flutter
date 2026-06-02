@@ -12,6 +12,7 @@ import '../../../core/widgets/listing_photo.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/status_pill.dart';
 import '../../auth/state/auth_controller.dart';
+import '../../marketplace/state/marketplace_controller.dart';
 import '../state/sell_controller.dart';
 
 class SellScreen extends StatefulWidget {
@@ -75,11 +76,16 @@ class _SellScreenState extends State<SellScreen> {
       return;
     }
     final title = _titleController.text.trim();
+    final marketplace = context.read<MarketplaceController>();
     _clearForm();
     context.go(AppRoutes.buy);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$title is live in the marketplace.'),
+        content: Text(
+          marketplace.hasPendingWrites
+              ? '$title was saved locally and will publish when you refresh online.'
+              : '$title is live in the marketplace.',
+        ),
         behavior: SnackBarBehavior.floating,
       ),
     );

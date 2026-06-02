@@ -19,4 +19,13 @@ class ChatMessage {
   final String body;
   final DateTime sentAt;
   final bool fromCurrentUser;
+
+  Map<String, Object?> toJson() {
+    return {
+      'authorName': authorName,
+      'body': body,
+      'sentAt': sentAt.toUtc().toIso8601String(),
+      'fromCurrentUser': fromCurrentUser,
+    };
+  }
 }

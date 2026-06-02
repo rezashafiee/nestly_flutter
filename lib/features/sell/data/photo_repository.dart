@@ -1,3 +1,4 @@
+import '../../../core/data/photo_assets.dart';
 import '../../../core/models/photo_asset.dart';
 import '../../../core/network/api_client.dart';
 
@@ -17,7 +18,7 @@ class PhotoRepository {
     } on ApiException catch (error) {
       throw PhotoException(error.message);
     } catch (_) {
-      throw const PhotoException('Photo service is unavailable right now.');
+      return PhotoAssets.forCategory(category);
     }
   }
 }

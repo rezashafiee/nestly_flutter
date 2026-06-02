@@ -14,17 +14,26 @@ class ChatController extends ChangeNotifier {
   String? _activeConversationId;
   AsyncStatus _conversationStatus = AsyncStatus.idle;
   String? _conversationError;
+  String? _syncMessage;
   AsyncStatus _sendStatus = AsyncStatus.idle;
   String? _sendError;
+  bool _isRefreshingConversations = false;
+  bool _isUsingOfflineData = false;
+  bool _hasPendingWrites = false;
 
   List<Conversation> get conversations => _repository.conversations;
   String? get activeConversationId => _activeConversationId;
   AsyncStatus get conversationStatus => _conversationStatus;
   String? get conversationError => _conversationError;
+  String? get syncMessage => _syncMessage;
   AsyncStatus get sendStatus => _sendStatus;
   String? get sendError => _sendError;
-  bool get isLoadingConversations => _conversationStatus == AsyncStatus.loading;
+  bool get isLoadingConversations =>
+      _conversationStatus == AsyncStatus.loading && conversations.isEmpty;
+  bool get isRefreshingConversations => _isRefreshingConversations;
   bool get isSending => _sendStatus == AsyncStatus.loading;
+  bool get isUsingOfflineData => _isUsingOfflineData;
+  bool get hasPendingWrites => _hasPendingWrites;
 
   Conversation? get activeConversation {
     final id = _activeConversationId;
@@ -46,15 +55,28 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> refresh({required UserProfile buyer}) async {
-    _conversationStatus = AsyncStatus.loading;
+    _isRefreshingConversations = true;
+    _conversationStatus = conversations.isEmpty
+        ? AsyncStatus.loading
+        : AsyncStatus.success;
     _conversationError = null;
     notifyListeners();
+
+    final restored = await _repository.restoreConversations(buyer: buyer);
+    if (restored.isNotEmpty) {
+      _activeConversationId ??= restored.first.id;
+      _conversationStatus = AsyncStatus.success;
+      _applyRepositoryState();
+      notifyListeners();
+    }
+
     try {
       await _repository.fetchConversations(buyer: buyer);
       _activeConversationId ??= conversations.isEmpty
           ? null
           : conversations.first.id;
       _conversationStatus = AsyncStatus.success;
+      _conversationError = null;
     } on ChatException catch (error) {
       _conversationStatus = AsyncStatus.failure;
       _conversationError = error.message;
@@ -62,6 +84,8 @@ class ChatController extends ChangeNotifier {
       _conversationStatus = AsyncStatus.failure;
       _conversationError = 'Conversations are unavailable right now.';
     }
+    _isRefreshingConversations = false;
+    _applyRepositoryState();
     notifyListeners();
   }
 
@@ -80,6 +104,7 @@ class ChatController extends ChangeNotifier {
       );
       _activeConversationId = conversation.id;
       _conversationStatus = AsyncStatus.success;
+      _applyRepositoryState();
       notifyListeners();
       return true;
     } on ChatException catch (error) {
@@ -122,6 +147,7 @@ class ChatController extends ChangeNotifier {
         body: trimmed,
       );
       _sendStatus = AsyncStatus.success;
+      _applyRepositoryState();
     } on ChatException catch (error) {
       _sendStatus = AsyncStatus.failure;
       _sendError = error.message;
@@ -130,5 +156,11 @@ class ChatController extends ChangeNotifier {
       _sendError = 'Message could not be sent.';
     }
     notifyListeners();
+  }
+
+  void _applyRepositoryState() {
+    _isUsingOfflineData = _repository.isUsingOfflineData;
+    _hasPendingWrites = _repository.hasPendingWrites;
+    _syncMessage = _repository.syncMessage;
   }
 }

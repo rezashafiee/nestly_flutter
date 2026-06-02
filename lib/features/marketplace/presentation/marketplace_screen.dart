@@ -118,7 +118,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   const SizedBox(width: 12),
                   IconButton.filledTonal(
                     tooltip: 'Refresh',
-                    onPressed: controller.isLoading
+                    onPressed: controller.isRefreshing
                         ? null
                         : () => controller.refresh(),
                     icon: const Icon(Icons.refresh),
@@ -126,7 +126,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   const SizedBox(width: 8),
                   IconButton.filledTonal(
                     tooltip: 'Show offline state',
-                    onPressed: controller.isLoading
+                    onPressed: controller.isRefreshing
                         ? null
                         : () => controller.refresh(fail: true),
                     icon: const Icon(Icons.cloud_off_outlined),
@@ -163,6 +163,15 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               ),
               const SizedBox(height: 16),
               MarketplaceFilters(controller: controller),
+              if (controller.syncMessage != null) ...[
+                const SizedBox(height: 16),
+                InfoBanner(
+                  message: controller.syncMessage!,
+                  icon: controller.hasPendingWrites
+                      ? Icons.sync_problem_outlined
+                      : Icons.cloud_off_outlined,
+                ),
+              ],
               const SizedBox(height: 22),
               if (controller.isLoading)
                 const LoadingState(

@@ -15,19 +15,27 @@ class MarketplaceController extends ChangeNotifier {
   List<Listing> _listings;
   AsyncStatus _status = AsyncStatus.idle;
   String? _errorMessage;
+  String? _syncMessage;
   String _query = '';
   String _category = 'All';
   String _condition = 'Any';
   ListingSort _sort = ListingSort.newest;
+  bool _isRefreshing = false;
+  bool _isUsingOfflineData = false;
+  bool _hasPendingWrites = false;
 
   List<Listing> get listings => List.unmodifiable(_listings);
   AsyncStatus get status => _status;
   String? get errorMessage => _errorMessage;
+  String? get syncMessage => _syncMessage;
   String get query => _query;
   String get category => _category;
   String get condition => _condition;
   ListingSort get sort => _sort;
-  bool get isLoading => _status == AsyncStatus.loading;
+  bool get isLoading => _status == AsyncStatus.loading && _listings.isEmpty;
+  bool get isRefreshing => _isRefreshing;
+  bool get isUsingOfflineData => _isUsingOfflineData;
+  bool get hasPendingWrites => _hasPendingWrites;
 
   List<String> get categories => [
     'All',
@@ -94,12 +102,23 @@ class MarketplaceController extends ChangeNotifier {
   }
 
   Future<void> refresh({bool fail = false}) async {
-    _status = AsyncStatus.loading;
+    _isRefreshing = true;
+    _status = _listings.isEmpty ? AsyncStatus.loading : AsyncStatus.success;
     _errorMessage = null;
     notifyListeners();
+
+    final restored = await _repository.restoreListings();
+    if (restored.isNotEmpty && _listings.isEmpty) {
+      _listings = restored;
+      _status = AsyncStatus.success;
+      _applyRepositoryState();
+      notifyListeners();
+    }
+
     try {
       _listings = await _repository.fetchListings(fail: fail);
       _status = AsyncStatus.success;
+      _errorMessage = null;
     } on ListingsException catch (error) {
       _status = AsyncStatus.failure;
       _errorMessage = error.message;
@@ -107,6 +126,8 @@ class MarketplaceController extends ChangeNotifier {
       _status = AsyncStatus.failure;
       _errorMessage = 'Listings are unavailable right now.';
     }
+    _isRefreshing = false;
+    _applyRepositoryState();
     notifyListeners();
   }
 
@@ -119,7 +140,14 @@ class MarketplaceController extends ChangeNotifier {
       seller: seller,
     );
     _listings = _repository.currentListings;
+    _applyRepositoryState();
     notifyListeners();
     return listing;
+  }
+
+  void _applyRepositoryState() {
+    _isUsingOfflineData = _repository.isUsingOfflineData;
+    _hasPendingWrites = _repository.hasPendingWrites;
+    _syncMessage = _repository.syncMessage;
   }
 }

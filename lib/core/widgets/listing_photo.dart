@@ -43,47 +43,71 @@ class PhotoAssetView extends StatelessWidget {
       child: SizedBox(
         height: height,
         width: double.infinity,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Align(
-              alignment: Alignment.center,
-              child: Icon(
-                iconForPhoto(photo.iconKey),
-                color: AppColors.brandBlueDeep,
-                size: 64,
-              ),
-            ),
-            if (category != null)
-              Positioned(
-                left: 12,
-                bottom: 12,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.88),
-                    borderRadius: BorderRadius.circular(20),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final shortestSide = _shortestFiniteSide(constraints);
+            final iconSize = shortestSide == null
+                ? 64.0
+                : (shortestSide * 0.44).clamp(24.0, 72.0);
+            final showCategory =
+                category != null &&
+                constraints.maxWidth >= 150 &&
+                constraints.maxHeight >= 110;
+
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                Align(
+                  alignment: Alignment.center,
+                  child: Icon(
+                    iconForPhoto(photo.iconKey),
+                    color: AppColors.brandBlueDeep,
+                    size: iconSize,
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    child: Text(
-                      category!,
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
+                ),
+                if (showCategory)
+                  Positioned(
+                    left: 12,
+                    bottom: 12,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.88),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        child: Text(
+                          category!,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
   }
+}
+
+double? _shortestFiniteSide(BoxConstraints constraints) {
+  final sides = [
+    constraints.maxWidth,
+    constraints.maxHeight,
+  ].where((side) => side.isFinite && side > 0);
+  if (sides.isEmpty) {
+    return null;
+  }
+  return sides.reduce((value, side) => value < side ? value : side);
 }
 
 IconData iconForPhoto(String key) {

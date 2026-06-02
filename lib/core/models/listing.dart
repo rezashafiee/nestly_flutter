@@ -45,6 +45,23 @@ class Listing {
   final PhotoAsset photo;
   final int likes;
   final bool isMine;
+
+  Map<String, Object?> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'category': category,
+      'price': price,
+      'condition': condition,
+      'location': location,
+      'description': description,
+      'sellerName': sellerName,
+      'createdAt': createdAt.toUtc().toIso8601String(),
+      'photo': photo.toJson(),
+      'likes': likes,
+      'isMine': isMine,
+    };
+  }
 }
 
 double _readDouble(Object? value) {

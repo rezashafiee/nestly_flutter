@@ -33,6 +33,14 @@ class Conversation {
       messages: messages ?? this.messages,
     );
   }
+
+  Map<String, Object?> toJson() {
+    return {
+      'id': id,
+      'listing': listing.toJson(),
+      'messages': messages.map((message) => message.toJson()).toList(),
+    };
+  }
 }
 
 Map<String, Object?> _readMap(Object? value) {

@@ -12,6 +12,12 @@ import 'package:nestly/features/sell/data/photo_repository.dart';
 
 class FakeAuthRepository extends AuthRepository {
   @override
+  Future<UserProfile?> restoreProfile() async => null;
+
+  @override
+  Future<void> forgetProfile() async {}
+
+  @override
   Future<UserProfile> signInWithEmail({
     required String email,
     required String password,
@@ -51,6 +57,18 @@ class FakeListingsRepository extends ListingsRepository {
 
   @override
   List<Listing> get currentListings => List.unmodifiable(_items);
+
+  @override
+  bool get isUsingOfflineData => false;
+
+  @override
+  bool get hasPendingWrites => false;
+
+  @override
+  String? get syncMessage => null;
+
+  @override
+  Future<List<Listing>> restoreListings() async => currentListings;
 
   @override
   Future<List<Listing>> fetchListings({bool fail = false}) async {
@@ -96,6 +114,22 @@ class FakeChatRepository extends ChatRepository {
 
   @override
   List<Conversation> get conversations => List.unmodifiable(_items);
+
+  @override
+  bool get isUsingOfflineData => false;
+
+  @override
+  bool get hasPendingWrites => false;
+
+  @override
+  String? get syncMessage => null;
+
+  @override
+  Future<List<Conversation>> restoreConversations({
+    required UserProfile buyer,
+  }) async {
+    return conversations;
+  }
 
   @override
   Future<List<Conversation>> fetchConversations({

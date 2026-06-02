@@ -60,6 +60,14 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final chat = context.watch<ChatController>();
     final profile = context.watch<AuthController>().profile;
+    final syncBanner = chat.syncMessage == null
+        ? null
+        : InfoBanner(
+            message: chat.syncMessage!,
+            icon: chat.hasPendingWrites
+                ? Icons.sync_problem_outlined
+                : Icons.cloud_off_outlined,
+          );
     if (chat.isLoadingConversations && chat.conversations.isEmpty) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
@@ -93,12 +101,21 @@ class _ChatScreenState extends State<ChatScreen> {
     if (chat.conversations.isEmpty) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-        children: const [
+        children: [
           ResponsiveContent(
-            child: EmptyState(
-              icon: Icons.chat_bubble_outline,
-              title: 'No chats yet',
-              message: 'Open an item and start a conversation with the seller.',
+            child: Column(
+              children: [
+                if (syncBanner != null) ...[
+                  syncBanner,
+                  const SizedBox(height: 16),
+                ],
+                const EmptyState(
+                  icon: Icons.chat_bubble_outline,
+                  title: 'No chats yet',
+                  message:
+                      'Open an item and start a conversation with the seller.',
+                ),
+              ],
             ),
           ),
         ],
@@ -127,11 +144,21 @@ class _ChatScreenState extends State<ChatScreen> {
             padding: const EdgeInsets.all(20),
             child: ResponsiveContent(
               maxWidth: 1120,
-              child: Row(
+              child: Column(
                 children: [
-                  SizedBox(width: 330, child: list),
-                  const SizedBox(width: 16),
-                  Expanded(child: detail),
+                  if (syncBanner != null) ...[
+                    syncBanner,
+                    const SizedBox(height: 12),
+                  ],
+                  Expanded(
+                    child: Row(
+                      children: [
+                        SizedBox(width: 330, child: list),
+                        const SizedBox(width: 16),
+                        Expanded(child: detail),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -142,6 +169,10 @@ class _ChatScreenState extends State<ChatScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
+              if (syncBanner != null) ...[
+                syncBanner,
+                const SizedBox(height: 12),
+              ],
               SizedBox(height: 146, child: list),
               const SizedBox(height: 16),
               Expanded(child: detail),
@@ -176,6 +207,9 @@ class ConversationList extends StatelessWidget {
         itemBuilder: (context, index) {
           final conversation = conversations[index];
           final selected = conversation.id == selectedId;
+          final preview = conversation.messages.isEmpty
+              ? 'Chat saved locally'
+              : conversation.messages.last.body;
           return SizedBox(
             width: horizontal ? 260 : null,
             child: Material(
@@ -213,7 +247,7 @@ class ConversationList extends StatelessWidget {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              conversation.messages.last.body,
+                              preview,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.bodySmall
@@ -298,45 +332,55 @@ class ChatDetail extends StatelessWidget {
           ),
           const Divider(height: 1, color: AppColors.line),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: conversation.messages.length,
-              itemBuilder: (context, index) {
-                final message = conversation.messages[index];
-                return Align(
-                  alignment: message.fromCurrentUser
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 440),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: message.fromCurrentUser
-                            ? AppColors.brandBlueDeep
-                            : const Color(0xFFF0F5F8),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        child: Text(
-                          message.body,
-                          style: TextStyle(
-                            color: message.fromCurrentUser
-                                ? Colors.white
-                                : AppColors.ink,
-                            height: 1.35,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+            child: conversation.messages.isEmpty
+                ? Center(
+                    child: Text(
+                      'No messages yet.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.mutedInk,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: conversation.messages.length,
+                    itemBuilder: (context, index) {
+                      final message = conversation.messages[index];
+                      return Align(
+                        alignment: message.fromCurrentUser
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 440),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: message.fromCurrentUser
+                                  ? AppColors.brandBlueDeep
+                                  : const Color(0xFFF0F5F8),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              child: Text(
+                                message.body,
+                                style: TextStyle(
+                                  color: message.fromCurrentUser
+                                      ? Colors.white
+                                      : AppColors.ink,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
           if (sendError != null)
             Padding(

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/network/api_client.dart';
+import '../core/offline/offline_json_store.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/state/auth_controller.dart';
@@ -35,6 +38,7 @@ class NestlyApp extends StatefulWidget {
 
 class _NestlyAppState extends State<NestlyApp> {
   late final NestlyApiClient _apiClient;
+  late final OfflineJsonStore _offlineStore;
   late final bool _ownsApiClient;
   late final AppController _appController;
   late final AuthRepository _authRepository;
@@ -58,17 +62,22 @@ class _NestlyAppState extends State<NestlyApp> {
   void initState() {
     super.initState();
     _apiClient = widget.apiClient ?? NestlyApiClient();
+    _offlineStore = OfflineJsonStore();
     _ownsApiClient = widget.apiClient == null;
     _appController = AppController()..start();
     _authRepository =
-        widget.authRepository ?? AuthRepository(apiClient: _apiClient);
+        widget.authRepository ??
+        AuthRepository(apiClient: _apiClient, offlineStore: _offlineStore);
     _listingsRepository =
-        widget.listingsRepository ?? ListingsRepository(apiClient: _apiClient);
+        widget.listingsRepository ??
+        ListingsRepository(apiClient: _apiClient, offlineStore: _offlineStore);
     _chatRepository =
-        widget.chatRepository ?? ChatRepository(apiClient: _apiClient);
+        widget.chatRepository ??
+        ChatRepository(apiClient: _apiClient, offlineStore: _offlineStore);
     _photoRepository =
         widget.photoRepository ?? PhotoRepository(apiClient: _apiClient);
     _authController = AuthController(_authRepository);
+    unawaited(_authController.restoreSession());
     _marketplaceController = MarketplaceController(_listingsRepository);
     _chatController = ChatController(_chatRepository);
   }
