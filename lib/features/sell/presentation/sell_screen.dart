@@ -78,13 +78,13 @@ class _SellScreenState extends State<SellScreen> {
     final title = _titleController.text.trim();
     final marketplace = context.read<MarketplaceController>();
     _clearForm();
-    context.go(AppRoutes.buy);
+    context.go(AppRoutes.account);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           marketplace.hasPendingWrites
               ? '$title was saved locally and will publish when you refresh online.'
-              : '$title is live in the marketplace.',
+              : '$title is live for buyers.',
         ),
         behavior: SnackBarBehavior.floating,
       ),

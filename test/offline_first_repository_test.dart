@@ -61,6 +61,35 @@ void main() {
   );
 
   test(
+    'listings repository marks viewer owned listings from seller email',
+    () async {
+      final repository = ListingsRepository(
+        apiClient: clientFor(
+          MockClient((request) async {
+            expect(request.method, 'GET');
+            expect(request.url.queryParameters['viewerEmail'], buyer.email);
+            return http.Response(
+              jsonEncode([
+                _listingJson(
+                  id: 'server-chair',
+                  title: 'Cozy reading chair',
+                  sellerEmail: buyer.email,
+                ),
+              ]),
+              200,
+            );
+          }),
+        ),
+        offlineStore: OfflineJsonStore.inMemory(),
+      );
+
+      final listings = await repository.fetchListings(viewer: buyer);
+
+      expect(listings.single.isMine, isTrue);
+    },
+  );
+
+  test(
     'listings repository queues offline publish and syncs on refresh',
     () async {
       final store = OfflineJsonStore.inMemory();
@@ -223,6 +252,7 @@ void main() {
 Map<String, Object?> _listingJson({
   String id = 'listing-desk',
   String title = 'Vintage oak desk',
+  String sellerEmail = 'maya@nestly.app',
   bool isMine = false,
 }) {
   return {
@@ -234,6 +264,7 @@ Map<String, Object?> _listingJson({
     'location': 'Berlin',
     'description': 'Solid oak writing desk with three drawers.',
     'sellerName': 'Maya',
+    'sellerEmail': sellerEmail,
     'createdAt': DateTime(2026, 1, 1, 12).toUtc().toIso8601String(),
     'photo': {'iconKey': 'desk', 'colorValue': 0xFFB7E4C7},
     'likes': 28,

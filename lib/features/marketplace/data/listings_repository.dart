@@ -27,8 +27,11 @@ class ListingsRepository {
   bool get hasPendingWrites => _hasPendingWrites;
   String? get syncMessage => _syncMessage;
 
-  Future<List<Listing>> restoreListings() async {
-    final cached = await _readCachedListings();
+  Future<List<Listing>> restoreListings({UserProfile? viewer}) async {
+    final cached = _applyViewerOwnership(
+      await _readCachedListings(),
+      viewer: viewer,
+    );
     if (cached.isEmpty) {
       await _refreshPendingState();
       return currentListings;
@@ -42,20 +45,31 @@ class ListingsRepository {
     return currentListings;
   }
 
-  Future<List<Listing>> fetchListings({bool fail = false}) async {
+  Future<List<Listing>> fetchListings({
+    UserProfile? viewer,
+    bool fail = false,
+  }) async {
     if (_listings.isEmpty) {
-      await restoreListings();
+      await restoreListings(viewer: viewer);
     }
     try {
       if (fail) {
         throw const _OfflineSyncException();
       }
       await _syncPendingListings();
-      final response = await _apiClient.getJson('/api/listings');
+      final response = await _apiClient.getJson(
+        '/api/listings',
+        queryParameters: {'viewerEmail': viewer?.email},
+      );
       final listings = asJsonList(
         response,
       ).map((item) => Listing.fromJson(asJsonMap(item))).toList();
-      _replaceAll(await _mergePendingLocalListings(listings));
+      _replaceAll(
+        _applyViewerOwnership(
+          await _mergePendingLocalListings(listings),
+          viewer: viewer,
+        ),
+      );
       await _writeCachedListings(_listings);
       _isUsingOfflineData = false;
       await _refreshPendingState();
@@ -64,7 +78,7 @@ class ListingsRepository {
           : null;
       return currentListings;
     } catch (_) {
-      return _fallbackListings();
+      return _fallbackListings(viewer: viewer);
     }
   }
 
@@ -91,7 +105,9 @@ class ListingsRepository {
         'photo': input.photo.toJson(),
       });
       final listing = _preservePickedPhoto(
-        Listing.fromJson(asJsonMap(response)),
+        Listing.fromJson(
+          asJsonMap(response),
+        ).copyWith(sellerEmail: seller.email, isMine: true),
         input.photo,
       );
       _replaceListing(listing);
@@ -118,13 +134,16 @@ class ListingsRepository {
     }
   }
 
-  Future<List<Listing>> _fallbackListings() async {
-    final cached = await _readCachedListings();
+  Future<List<Listing>> _fallbackListings({UserProfile? viewer}) async {
+    final cached = _applyViewerOwnership(
+      await _readCachedListings(),
+      viewer: viewer,
+    );
     if (cached.isNotEmpty) {
       _replaceAll(cached);
       _syncMessage = 'Showing saved listings until fresh data is available.';
     } else {
-      _replaceAll(seedListings());
+      _replaceAll(_applyViewerOwnership(seedListings(), viewer: viewer));
       await _writeCachedListings(_listings);
       _syncMessage =
           'Showing starter listings until a connection is available.';
@@ -189,7 +208,10 @@ class ListingsRepository {
         final request = asJsonMap(item['request']);
         final response = await _apiClient.postJson('/api/listings', request);
         final listing = _preservePickedPhoto(
-          Listing.fromJson(asJsonMap(response)),
+          Listing.fromJson(asJsonMap(response)).copyWith(
+            sellerEmail: request['sellerEmail']?.toString(),
+            isMine: true,
+          ),
           PhotoAsset.fromJson(asJsonMap(request['photo'])),
         );
         _replaceListing(listing, previousId: item['localId']?.toString());
@@ -268,6 +290,7 @@ class ListingsRepository {
       location: input.location,
       description: input.description,
       sellerName: seller.name,
+      sellerEmail: seller.email,
       createdAt: DateTime.now(),
       photo: input.photo,
       likes: 0,
@@ -309,11 +332,29 @@ class ListingsRepository {
       location: listing.location,
       description: listing.description,
       sellerName: listing.sellerName,
+      sellerEmail: listing.sellerEmail,
       createdAt: listing.createdAt,
       photo: pickedPhoto,
       likes: listing.likes,
       isMine: listing.isMine,
     );
+  }
+
+  List<Listing> _applyViewerOwnership(
+    List<Listing> listings, {
+    required UserProfile? viewer,
+  }) {
+    final viewerEmail = viewer?.email.trim().toLowerCase();
+    if (viewerEmail == null || viewerEmail.isEmpty) {
+      return listings;
+    }
+    return listings.map((listing) {
+      final sellerEmail = listing.sellerEmail?.trim().toLowerCase();
+      if (sellerEmail == null || sellerEmail.isEmpty) {
+        return listing;
+      }
+      return listing.copyWith(isMine: sellerEmail == viewerEmail);
+    }).toList();
   }
 }
 

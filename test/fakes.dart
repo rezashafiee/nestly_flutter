@@ -68,10 +68,14 @@ class FakeListingsRepository extends ListingsRepository {
   String? get syncMessage => null;
 
   @override
-  Future<List<Listing>> restoreListings() async => currentListings;
+  Future<List<Listing>> restoreListings({UserProfile? viewer}) async =>
+      currentListings;
 
   @override
-  Future<List<Listing>> fetchListings({bool fail = false}) async {
+  Future<List<Listing>> fetchListings({
+    UserProfile? viewer,
+    bool fail = false,
+  }) async {
     if (fail) {
       throw const ListingsException(
         'We could not load fresh listings. Check your connection and try again.',
@@ -99,6 +103,7 @@ class FakeListingsRepository extends ListingsRepository {
       location: input.location,
       description: input.description,
       sellerName: seller.name,
+      sellerEmail: seller.email,
       createdAt: DateTime.now(),
       photo: input.photo,
       likes: 0,

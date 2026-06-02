@@ -39,7 +39,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       }
       final controller = context.read<MarketplaceController>();
       if (controller.listings.isEmpty) {
-        unawaited(controller.refresh());
+        unawaited(
+          controller.refresh(viewer: context.read<AuthController>().profile),
+        );
       }
     });
   }
@@ -79,6 +81,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   Widget build(BuildContext context) {
     final controller = context.watch<MarketplaceController>();
     final listings = controller.filteredListings;
+    final profile = context.watch<AuthController>().profile;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
@@ -105,7 +108,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${controller.listings.length} nearby listings ready for pickup.',
+                          '${controller.browseListings.length} nearby listings ready for pickup.',
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(
                                 color: AppColors.mutedInk,
@@ -120,7 +123,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     tooltip: 'Refresh',
                     onPressed: controller.isRefreshing
                         ? null
-                        : () => controller.refresh(),
+                        : () => controller.refresh(viewer: profile),
                     icon: const Icon(Icons.refresh),
                   ),
                   const SizedBox(width: 8),
@@ -128,7 +131,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     tooltip: 'Show offline state',
                     onPressed: controller.isRefreshing
                         ? null
-                        : () => controller.refresh(fail: true),
+                        : () => controller.refresh(viewer: profile, fail: true),
                     icon: const Icon(Icons.cloud_off_outlined),
                   ),
                 ],

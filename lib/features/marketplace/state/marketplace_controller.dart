@@ -36,15 +36,19 @@ class MarketplaceController extends ChangeNotifier {
   bool get isRefreshing => _isRefreshing;
   bool get isUsingOfflineData => _isUsingOfflineData;
   bool get hasPendingWrites => _hasPendingWrites;
+  List<Listing> get browseListings =>
+      _listings.where((listing) => !listing.isMine).toList(growable: false);
+  List<Listing> get ownListings =>
+      _listings.where((listing) => listing.isMine).toList(growable: false);
 
   List<String> get categories => [
     'All',
-    ...{for (final listing in _listings) listing.category},
+    ...{for (final listing in browseListings) listing.category},
   ];
 
   List<Listing> get filteredListings {
     final search = _query.trim().toLowerCase();
-    final filtered = _listings.where((listing) {
+    final filtered = browseListings.where((listing) {
       final matchesSearch =
           search.isEmpty ||
           listing.title.toLowerCase().contains(search) ||
@@ -72,7 +76,7 @@ class MarketplaceController extends ChangeNotifier {
     return filtered;
   }
 
-  int get activeListings => _listings.where((listing) => listing.isMine).length;
+  int get activeListings => ownListings.length;
 
   void updateQuery(String query) {
     _query = query;
@@ -101,13 +105,13 @@ class MarketplaceController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> refresh({bool fail = false}) async {
+  Future<void> refresh({UserProfile? viewer, bool fail = false}) async {
     _isRefreshing = true;
     _status = _listings.isEmpty ? AsyncStatus.loading : AsyncStatus.success;
     _errorMessage = null;
     notifyListeners();
 
-    final restored = await _repository.restoreListings();
+    final restored = await _repository.restoreListings(viewer: viewer);
     if (restored.isNotEmpty && _listings.isEmpty) {
       _listings = restored;
       _status = AsyncStatus.success;
@@ -116,7 +120,7 @@ class MarketplaceController extends ChangeNotifier {
     }
 
     try {
-      _listings = await _repository.fetchListings(fail: fail);
+      _listings = await _repository.fetchListings(viewer: viewer, fail: fail);
       _status = AsyncStatus.success;
       _errorMessage = null;
     } on ListingsException catch (error) {

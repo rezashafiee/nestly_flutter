@@ -32,6 +32,13 @@ void main() {
 
       expect(listing.isMine, isTrue);
       expect(controller.listings.first.title, 'Cozy reading chair');
+      expect(controller.ownListings.single.id, listing.id);
+
+      controller.clearFilters();
+      expect(
+        controller.filteredListings.any((item) => item.id == listing.id),
+        isFalse,
+      );
     },
   );
 
